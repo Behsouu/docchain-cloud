@@ -1,0 +1,5 @@
+subscription_id      = "TON_SUBSCRIPTION_ID"
+resource_group_name  = "docchain-rg"
+location             = "West Europe"
+storage_account_name = "docchainsinara"
+app_name             = "docchain-sina-efrei"
