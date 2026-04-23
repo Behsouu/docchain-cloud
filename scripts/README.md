@@ -17,3 +17,22 @@
 ### health_check.py
 Vérifie que le Storage Azure et le container docchain sont accessibles.
 Lance une alerte si un service est indisponible.
+
+
+python scripts/health_check.py
+
+### cleanup.py
+Supprime automatiquement les fichiers de plus de 30 jours.
+Permet de gérer les coûts de stockage et respecter la politique de rétention RGPD.
+python scripts/cleanup.py
+
+### rotate_secrets.py
+Vérifie la validité des clés d'accès et simule leur rotation.
+En production : rotation automatique tous les 90 jours via Azure Key Vault.
+python scripts/rotate_secrets.py
+
+## Planification automatique
+En production, ces scripts sont déclenchés automatiquement via Azure Functions Timer Trigger :
+- health_check.py : toutes les 5 minutes
+- cleanup.py : tous les jours à minuit
+- rotate_secrets.py : tous les 90 jours
