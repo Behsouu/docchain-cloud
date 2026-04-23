@@ -51,5 +51,11 @@ def upload():
 def metrics():
     return generate_latest(), 200, {'Content-Type': 'text/plain; charset=utf-8'}
 
+@app.route('/alert', methods=['POST'])
+def alert():
+    data = request.get_json()
+    print(f"[ALERTE GRAFANA] {data}")
+    return jsonify({'status': 'received'}), 200
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
