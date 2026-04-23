@@ -16,6 +16,7 @@ CONN_STR         = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
 CONTAINER        = os.getenv('AZURE_CONTAINER_NAME', 'docchain')
 ALCHEMY_URL      = os.getenv('ALCHEMY_URL')
 CONTRACT_ADDRESS = os.getenv('CONTRACT_ADDRESS')
+PRIVATE_KEY      = os.getenv('WALLET_PRIVATE_KEY')
 
 w3 = Web3(Web3.HTTPProvider(ALCHEMY_URL))
 
@@ -26,47 +27,104 @@ contract = w3.eth.contract(
     abi=CONTRACT_ABI
 )
 
+def register_on_blockchain(file_hash: str, filename: str) -> str:
+    try:
+        bytes32_hash = bytes.fromhex(file_hash)
+        account      = w3.eth.account.from_key(PRIVATE_KEY)
+        nonce        = w3.eth.get_transaction_count(account.address)
+        tx = contract.functions.registerDocument(
+            bytes32_hash, filename
+        ).build_transaction({
+            'from'    : account.address,
+            'nonce'   : nonce,
+            'gas'     : 200000,
+            'gasPrice': w3.eth.gas_price,
+            'chainId' : 11155111
+        })
+        signed  = w3.eth.account.sign_transaction(tx, PRIVATE_KEY)
+        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
+        return tx_hash.hex()
+    except Exception as e:
+        print(f"Blockchain error: {e}")
+        return None
+
 HTML = '''
 <!DOCTYPE html>
 <html>
 <head>
     <title>DocChain</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        body { font-family: Arial, sans-serif; max-width: 700px; margin: 50px auto; padding: 20px; }
         h1 { color: #2c3e50; }
         .upload-form { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
-        button { background: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        .verify-form { background: #e8f4fd; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        button { background: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
         button:hover { background: #2980b9; }
-        .result { background: #e8f5e9; padding: 15px; border-radius: 8px; margin: 10px 0; display: none; }
+        .result { padding: 15px; border-radius: 8px; margin: 10px 0; display: none; word-break: break-all; }
+        .success { background: #e8f5e9; border-left: 4px solid #27ae60; }
+        .error { background: #ffebee; border-left: 4px solid #e74c3c; }
+        input[type=text] { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
     </style>
 </head>
 <body>
-    <h1>DocChain — Gestionnaire de documents</h1>
-    <p>Upload sécurisé avec preuve d intégrité blockchain</p>
+    <h1>DocChain</h1>
+    <p>Gestionnaire de documents avec preuve d intégrité blockchain sur Ethereum Sepolia</p>
     <div class="upload-form">
         <h3>Uploader un document</h3>
         <form id="uploadForm">
-            <input type="file" id="fileInput" name="file" required><br><br>
+            <input type="file" id="fileInput" name="file" required><br>
             <button type="submit">Uploader et enregistrer sur blockchain</button>
         </form>
-        <div class="result" id="result"></div>
+        <div class="result" id="uploadResult"></div>
+    </div>
+    <div class="verify-form">
+        <h3>Verifier l integrite d un document</h3>
+        <input type="text" id="hashInput" placeholder="Entrez le hash SHA-256 du fichier...">
+        <button onclick="verifyDoc()">Verifier sur blockchain</button>
+        <div class="result" id="verifyResult"></div>
     </div>
     <script>
         document.getElementById("uploadForm").onsubmit = async function(e) {
             e.preventDefault();
+            const r = document.getElementById("uploadResult");
+            r.style.display = "block";
+            r.className = "result";
+            r.innerHTML = "En cours - upload et enregistrement sur blockchain...";
             const formData = new FormData();
             formData.append("file", document.getElementById("fileInput").files[0]);
-            const res = await fetch("/upload", { method: "POST", body: formData });
+            const res  = await fetch("/upload", { method: "POST", body: formData });
             const data = await res.json();
-            const r = document.getElementById("result");
-            r.style.display = "block";
             if (data.status === "uploaded") {
-                r.innerHTML = "<b>✅ Fichier uploadé !</b><br>Hash: " + data.hash + "<br>Blockchain TX: " + (data.tx_hash || "en cours...");
+                r.className = "result success";
+                r.innerHTML = "<b>Fichier uploade et enregistre sur blockchain !</b><br><br>" +
+                    "<b>Fichier :</b> " + data.filename + "<br>" +
+                    "<b>Hash SHA-256 :</b> " + data.hash + "<br>" +
+                    "<b>Transaction blockchain :</b> <a href='https://sepolia.etherscan.io/tx/" + data.tx_hash + "' target='_blank'>" + data.tx_hash + "</a><br>" +
+                    "<b>Contrat :</b> " + data.blockchain;
             } else {
-                r.innerHTML = "<b>❌ Erreur:</b> " + data.error;
-                r.style.background = "#ffebee";
+                r.className = "result error";
+                r.innerHTML = "<b>Erreur :</b> " + (data.error || JSON.stringify(data));
             }
         };
+        async function verifyDoc() {
+            const hash = document.getElementById("hashInput").value.trim();
+            const r    = document.getElementById("verifyResult");
+            r.style.display = "block";
+            r.innerHTML = "Verification en cours...";
+            const res  = await fetch("/verify/" + hash);
+            const data = await res.json();
+            if (data.exists) {
+                r.className = "result success";
+                r.innerHTML = "<b>Document authentifie !</b><br>" +
+                    "<b>Uploader :</b> " + data.uploader + "<br>" +
+                    "<b>Fichier :</b> " + data.filename + "<br>" +
+                    "<b>Date :</b> " + new Date(data.timestamp * 1000).toLocaleString();
+            } else {
+                r.className = "result error";
+                r.innerHTML = "<b>Document non trouve dans la blockchain</b>";
+            }
+        }
     </script>
 </body>
 </html>
@@ -82,11 +140,9 @@ def upload():
         if 'file' not in request.files:
             ERRORS.inc()
             return jsonify({'error': 'Aucun fichier'}), 400
-        f = request.files['file']
+        f       = request.files['file']
         content = f.read()
         file_hash = hashlib.sha256(content).hexdigest()
-        bytes32_hash = bytes.fromhex(file_hash)
-
         try:
             client = BlobServiceClient.from_connection_string(CONN_STR)
             blob   = client.get_blob_client(container=CONTAINER, blob=f.filename)
@@ -94,20 +150,13 @@ def upload():
             UPLOADS.inc()
         except Exception as e:
             ERRORS.inc()
-            return jsonify({'error': str(e)}), 500
-
-        tx_hash = None
-        try:
-            count = contract.functions.verifyDocument(bytes32_hash).call()
-            tx_hash = "lecture_seule_ok"
-        except Exception as e:
-            pass
-
+            return jsonify({'error': f'Erreur Azure Storage: {str(e)}'}), 500
+        tx_hash = register_on_blockchain(file_hash, f.filename)
         return jsonify({
-            'hash': file_hash,
-            'filename': f.filename,
-            'status': 'uploaded',
-            'tx_hash': tx_hash,
+            'hash'      : file_hash,
+            'filename'  : f.filename,
+            'status'    : 'uploaded',
+            'tx_hash'   : tx_hash,
             'blockchain': CONTRACT_ADDRESS
         })
 
@@ -117,12 +166,13 @@ def verify(file_hash):
         bytes32_hash = bytes.fromhex(file_hash)
         result = contract.functions.verifyDocument(bytes32_hash).call()
         return jsonify({
-            'exists': result[0],
-            'uploader': result[1],
+            'exists'   : result[0],
+            'uploader' : result[1],
             'timestamp': result[2],
-            'filename': result[3]
+            'filename' : result[3]
         })
     except Exception as e:
+        ERRORS.inc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/metrics')
@@ -131,7 +181,7 @@ def metrics():
 
 @app.route('/alert', methods=['POST'])
 def alert():
-    print(f"Alerte Grafana reçue: {request.json}")
+    print(f"Alerte Grafana recue: {request.json}")
     return jsonify({'status': 'ok'}), 200
 
 if __name__ == '__main__':
