@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Installer les dépendances
-        run: pip install flask python-dotenv prometheus-client
+        run: pip install flask python-dotenv prometheus-client azure-storage-blob web3
       - name: Lancer les tests
         run: python -c "from app.app import app; print('Import Flask OK')"
 
