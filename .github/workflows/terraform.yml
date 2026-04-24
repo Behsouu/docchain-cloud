@@ -19,6 +19,13 @@ jobs:
       - name: Installer les dépendances
         run: pip install flask python-dotenv prometheus-client azure-storage-blob web3
       - name: Lancer les tests
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: "DefaultEndpointsProtocol=https;AccountName=test;AccountKey=dGVzdA==;EndpointSuffix=core.windows.net"
+          AZURE_CONTAINER_NAME: "docchain"
+          ALCHEMY_URL: "https://eth-sepolia.g.alchemy.com/v2/test"
+          CONTRACT_ADDRESS: "0xE1A55786068869B9318811f61931783600fc8FCf"
+          WALLET_PRIVATE_KEY: "0000000000000000000000000000000000000000000000000000000000000001"
+          SECRET_KEY: "test"
         run: python -c "from app.app import app; print('Import Flask OK')"
 
   terraform:

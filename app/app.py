@@ -18,14 +18,14 @@ ALCHEMY_URL      = os.getenv('ALCHEMY_URL')
 CONTRACT_ADDRESS = os.getenv('CONTRACT_ADDRESS')
 PRIVATE_KEY      = os.getenv('WALLET_PRIVATE_KEY')
 
-w3 = Web3(Web3.HTTPProvider(ALCHEMY_URL))
+w3 = Web3(Web3.HTTPProvider(ALCHEMY_URL)) if ALCHEMY_URL else None
 
 CONTRACT_ABI = json.loads('[{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"bytes32","name":"hash","type":"bytes32"},{"indexed":true,"internalType":"address","name":"uploader","type":"address"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"string","name":"filename","type":"string"}],"name":"DocumentRegistered","type":"event"},{"inputs":[],"name":"documentCount","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"getDocumentCount","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bytes32","name":"_hash","type":"bytes32"},{"internalType":"string","name":"_filename","type":"string"}],"name":"registerDocument","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"bytes32","name":"_hash","type":"bytes32"}],"name":"verifyDocument","outputs":[{"internalType":"bool","name":"exists","type":"bool"},{"internalType":"address","name":"uploader","type":"address"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"string","name":"filename","type":"string"}],"stateMutability":"view","type":"function"}]')
 
 contract = w3.eth.contract(
     address=Web3.to_checksum_address(CONTRACT_ADDRESS),
     abi=CONTRACT_ABI
-)
+) if w3 and CONTRACT_ADDRESS else None
 
 def register_on_blockchain(file_hash: str, filename: str) -> str:
     try:
