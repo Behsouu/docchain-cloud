@@ -9,8 +9,8 @@ terraform {
 
 provider "azurerm" {
   features {}
-  subscription_id             = var.subscription_id
-  skip_provider_registration  = true
+  subscription_id            = var.subscription_id
+  skip_provider_registration = true
 }
 
 # Resource Group — le conteneur de toutes tes ressources Azure
@@ -18,8 +18,8 @@ resource "azurerm_resource_group" "rg" {
   name     = var.resource_group_name
   location = var.location
   tags = {
-    projet      = "docchain"
-    etudiant    = "efrei"
+    projet        = "docchain"
+    etudiant      = "efrei"
     environnement = "dev"
   }
 }
@@ -31,7 +31,7 @@ resource "azurerm_storage_account" "storage" {
   location                 = azurerm_resource_group.rg.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
-  
+
   blob_properties {
     delete_retention_policy {
       days = 7
