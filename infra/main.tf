@@ -59,12 +59,12 @@ resource "azurerm_service_plan" "plan" {
   sku_name            = "F1"
 }
 
-# Web App — héberge l'application Flask
 resource "azurerm_linux_web_app" "app" {
   name                = var.app_name
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   service_plan_id     = azurerm_service_plan.plan.id
+  https_only          = true
 
   site_config {
     application_stack {
@@ -82,4 +82,36 @@ resource "azurerm_linux_web_app" "app" {
   tags = {
     projet = "docchain"
   }
+}
+
+# Data source pour récupérer l'identité de l'utilisateur connecté
+data "azurerm_client_config" "current" {}
+
+# Azure Key Vault — stockage sécurisé des secrets
+resource "azurerm_key_vault" "kv" {
+  name                = "docchain-kv-sina"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  tenant_id           = data.azurerm_client_config.current.tenant_id
+  sku_name            = "standard"
+
+  access_policy {
+    tenant_id = data.azurerm_client_config.current.tenant_id
+    object_id = data.azurerm_client_config.current.object_id
+
+    secret_permissions = [
+      "Get", "List", "Set", "Delete"
+    ]
+  }
+
+  tags = {
+    projet = "docchain"
+  }
+}
+
+# Secret — clé de connexion Storage dans Key Vault
+resource "azurerm_key_vault_secret" "storage_key" {
+  name         = "storage-connection-string"
+  value        = azurerm_storage_account.storage.primary_connection_string
+  key_vault_id = azurerm_key_vault.kv.id
 }
