@@ -242,14 +242,36 @@ tr:hover{background:#f8f9fa}
     var fd=new FormData();fd.append('file',fi.files[0]);
     fetch('/upload',{method:'POST',body:fd}).then(function(res){return res.json();}).then(function(d){
       if(d.status==='uploaded'){
+        var filename=d.filename;
+        var hashVal=d.hash;
+        var contract=d.blockchain;
         r.className='res ok';
         r.innerHTML='<b>Document depose avec succes !</b><br><br>'+
-          '<b>Fichier :</b> '+d.filename+'<br>'+
-          '<b>Hash SHA-256 :</b> '+d.hash+'<br>'+
-          '<b>Contrat :</b> '+d.blockchain+'<br>'+
-          '<div class="info">Ancrage blockchain en cours... Le lien TX apparaitra automatiquement.</div>';
+          '<b>Fichier :</b> '+filename+'<br>'+
+          '<b>Hash SHA-256 :</b> '+hashVal+'<br>'+
+          '<b>Contrat :</b> '+contract+'<br>'+
+          '<b>Transaction :</b> <span id="tx-status">En cours de confirmation...</span>';
         ld();
         startAutoRefresh();
+        // Polling pour mettre a jour le TX hash dans la zone resultat
+        var pollCount=0;
+        var pollTimer=setInterval(function(){
+          pollCount++;
+          if(pollCount>24){clearInterval(pollTimer);return;}
+          fetch('/documents').then(function(res){return res.json();}).then(function(data){
+            var docs=data.documents||[];
+            for(var i=0;i<docs.length;i++){
+              if(docs[i].hash_sha256===hashVal && docs[i].tx_hash && docs[i].tx_hash.length>10){
+                var txSpan=document.getElementById('tx-status');
+                if(txSpan){
+                  txSpan.innerHTML='<a href="https://sepolia.etherscan.io/tx/'+docs[i].tx_hash+'" target="_blank" style="color:#27ae60;font-weight:bold;">'+docs[i].tx_hash+'</a>';
+                }
+                clearInterval(pollTimer);
+                break;
+              }
+            }
+          });
+        },5000);
       }else{r.className='res err';r.innerHTML='<b>Erreur :</b> '+(d.error||JSON.stringify(d));}
     }).catch(function(e){r.className='res err';r.innerHTML='<b>Erreur reseau :</b> '+e.message;});
   });

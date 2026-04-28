@@ -121,3 +121,74 @@ resource "azurerm_storage_table" "documents" {
   name                 = "documents"
   storage_account_name = azurerm_storage_account.storage.name
 }
+
+# VNet — Reseau virtuel prive pour isoler les ressources
+resource "azurerm_virtual_network" "vnet" {
+  name                = "docchain-vnet"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  address_space       = ["10.0.0.0/16"]
+  tags = { projet = "docchain" }
+}
+
+# Subnet public — pour l'App Service
+resource "azurerm_subnet" "subnet_public" {
+  name                 = "docchain-subnet-public"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.1.0/24"]
+  delegation {
+    name = "appservice-delegation"
+    service_delegation {
+      name    = "Microsoft.Web/serverFarms"
+      actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
+    }
+  }
+}
+
+# Subnet prive — pour les services backend (Storage, Key Vault)
+resource "azurerm_subnet" "subnet_private" {
+  name                 = "docchain-subnet-private"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.2.0/24"]
+}
+
+# NSG — Regles de securite reseau
+resource "azurerm_network_security_group" "nsg" {
+  name                = "docchain-nsg"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  security_rule {
+    name                       = "allow-https"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "deny-http"
+    priority                   = 200
+    direction                  = "Inbound"
+    access                     = "Deny"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  tags = { projet = "docchain" }
+}
+
+# Association NSG - Subnet public
+resource "azurerm_subnet_network_security_group_association" "nsg_assoc" {
+  subnet_id                 = azurerm_subnet.subnet_public.id
+  network_security_group_id = azurerm_network_security_group.nsg.id
+}
