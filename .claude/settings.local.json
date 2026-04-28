@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ':*)",
+      "Bash(python:*)",
+      "Bash(az webapp show:*)",
+      "Bash(az webapp config set:*)",
+      "Bash(az webapp deploy:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}
