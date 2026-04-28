@@ -115,3 +115,9 @@ resource "azurerm_key_vault_secret" "storage_key" {
   value        = azurerm_storage_account.storage.primary_connection_string
   key_vault_id = azurerm_key_vault.kv.id
 }
+
+# Azure Table Storage — base de données managée pour les métadonnées documents
+resource "azurerm_storage_table" "documents" {
+  name                 = "documents"
+  storage_account_name = azurerm_storage_account.storage.name
+}

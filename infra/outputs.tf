@@ -8,3 +8,8 @@ output "storage_connection_string" {
   value       = azurerm_storage_account.storage.primary_connection_string
   sensitive   = true
 }
+
+output "table_storage_name" {
+  description = "Nom de la table Azure Storage pour les metadonnees"
+  value       = azurerm_storage_table.documents.name
+}
