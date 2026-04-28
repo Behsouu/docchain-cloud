@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Installer les dépendances
-        run: pip install flask python-dotenv prometheus-client azure-storage-blob web3
+        run: pip install flask python-dotenv prometheus-client azure-storage-blob azure-data-tables web3
       - name: Lancer les tests
         env:
           AZURE_STORAGE_CONNECTION_STRING: "DefaultEndpointsProtocol=https;AccountName=test;AccountKey=dGVzdA==;EndpointSuffix=core.windows.net"

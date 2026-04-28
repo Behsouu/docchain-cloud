@@ -70,13 +70,17 @@ resource "azurerm_linux_web_app" "app" {
     application_stack {
       python_version = "3.11"
     }
-    always_on = false
+    always_on        = false
+    app_command_line = "gunicorn --bind=0.0.0.0:8000 --timeout 600 --workers 2 app:app"
   }
 
   app_settings = {
     "AZURE_STORAGE_CONNECTION_STRING" = azurerm_storage_account.storage.primary_connection_string
     "AZURE_CONTAINER_NAME"            = azurerm_storage_container.container.name
     "SCM_DO_BUILD_DURING_DEPLOYMENT"  = "true"
+    "ALCHEMY_URL"                     = var.alchemy_url
+    "CONTRACT_ADDRESS"                = var.contract_address
+    "WALLET_PRIVATE_KEY"              = var.wallet_private_key
   }
 
   tags = {
