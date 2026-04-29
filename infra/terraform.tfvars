@@ -1,0 +1,8 @@
+subscription_id      = "f009ab00-8a04-4b17-8ca9-60ef8e8e92c1"
+resource_group_name  = "docchain-rg"
+location             = "West Europe"
+storage_account_name = "docchainsinara"
+app_name             = "docchain-sina-efrei"
+alchemy_url          = "https://eth-sepolia.g.alchemy.com/v2/HYKwQEs-17MlvCUYK8gfG"
+contract_address     = "0xE1A55786068869B9318811f61931783600fc8FCf"
+wallet_private_key   = "ec086fed580409d742dc5c1ecabcf326d305c5271fdf201fb75d58b7b7ee8f19"

@@ -6,7 +6,12 @@
       "Bash(az webapp show:*)",
       "Bash(az webapp config set:*)",
       "Bash(az webapp deploy:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(terraform init:*)",
+      "Bash(terraform plan:*)",
+      "Bash(az webapp config appsettings:*)",
+      "Bash(terraform apply:*)",
+      "Bash(pip install:*)"
     ]
   }
 }
